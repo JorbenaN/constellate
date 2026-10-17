@@ -14,7 +14,7 @@ One plain HTML file: canvas and vanilla JavaScript, no build step, no dependenci
 | Enter | Clears everything |
 | Click / tap | Shockwave |
 | Tab (or the swatches) | Changes the sky (14 palettes, including two light ones) |
-| SOUND | Play music from your mic, a browser tab or an audio file, and the whole sky reacts (see below) |
+| SOUND | Listen through your microphone or a shared tab/screen with audio, and the whole sky reacts (see below) |
 | PNG / SVG / REC | Export an image, a transparent SVG of just the lettering, or a video |
 | Copy code | Copies the page source with a short prompt, ready to paste into Claude |
 

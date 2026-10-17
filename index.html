@@ -46,7 +46,7 @@ html,body{margin:0;height:100%;background:#05060F;overflow:hidden;overscroll-beh
 #btns button.rec{border-color:#ff4d4d;color:#ff4d4d}
 #soundWrap{position:relative}
 #btns #bSound.live{border-color:var(--live);color:var(--live)}
-#soundMenu{display:none;position:absolute;right:0;bottom:calc(100% + 10px);width:min(300px,calc(100vw - 32px));padding:6px;border-radius:16px;
+#soundMenu{display:none;position:absolute;left:0;bottom:calc(100% + 10px);width:min(300px,calc(100vw - 32px));padding:6px;border-radius:16px;
   border:1px solid var(--ui-line);background:var(--ui-pop);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:6;text-align:left}
 #soundMenu.open{display:block}
 #btns #soundMenu button{display:block;width:100%;text-align:left;border:0;border-radius:10px;padding:10px 12px;background:transparent;
@@ -78,12 +78,10 @@ html,body{margin:0;height:100%;background:#05060F;overflow:hidden;overscroll-beh
         <button id="bSound" aria-haspopup="true">SOUND</button>
         <div id="soundMenu" role="menu">
           <button data-src="mic">Microphone<small>hears music playing from your speakers</small></button>
-          <button data-src="tab" id="srcTab">Tab or system audio<small>cleanest. Share a tab and tick "also share audio"</small></button>
-          <button data-src="file">Audio file<small>plays it here and the stars follow</small></button>
+          <button data-src="tab" id="srcTab">Screen share<small>cleanest. Share a tab or screen and tick "also share audio"</small></button>
           <button data-src="off">Stop</button>
           <div id="soundMsg"></div>
         </div>
-        <input type="file" id="audioFile" accept="audio/*" hidden>
       </div>
       <button id="bPng">PNG</button><button id="bSvg">SVG</button><button id="bRec">REC</button></div>
   </div>
@@ -312,7 +310,7 @@ if (vv) { vv.addEventListener('resize', resize); vv.addEventListener('scroll', r
 // ---------- sound ----------
 // An AnalyserNode listens to the mic, a shared tab, or a file. We keep 48 log-spaced bands plus bass / mid / treble,
 // and call a beat whenever the bass jumps above its own running average.
-const A = { on: false, ctx: null, an: null, src: null, stream: null, el: null, url: null, bins: null, name: '', kind: '',
+const A = { on: false, ctx: null, an: null, src: null, stream: null, bins: null, name: '', kind: '',
             spec: new Float32Array(48), bass: 0, mid: 0, treb: 0, level: 0, beat: 0, avg: 0, peak: 0.35, lastBeat: 0, lastShoot: 0,
             lowmid: 0, himid: 0, high: 0, air: 0, snare: 0, hat: 0, lastMeteor: 0, lastStreak: 0 };
 const D = { kick: { avg: 0, t: 0 }, snare: { avg: 0, t: 0 }, hat: { avg: 0, t: 0 } };   // onset detectors
@@ -331,8 +329,6 @@ function hookAnalyser(source, toSpeakers) {
 }
 function stopSound(msg) {
   try { A.stream && A.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
-  if (A.el) { A.el.pause(); A.el.removeAttribute('src'); A.el = null; }
-  if (A.url) { URL.revokeObjectURL(A.url); A.url = null; }
   try { A.src && A.src.disconnect(); } catch (_) {}
   A.stream = A.src = A.an = null; A.on = false; A.kind = '';
   soundUi(msg);
@@ -349,16 +345,10 @@ async function startTab() {
   stopSound(); A.stream = st; hookAnalyser(audioCtx().createMediaStreamSource(new MediaStream(at)), false); A.kind = 'tab';
   st.getTracks().forEach(t => t.addEventListener('ended', () => { if (A.stream === st) stopSound('Sharing stopped'); }));
 }
-async function startFile(file) {
-  stopSound();
-  const el = new Audio(); A.url = URL.createObjectURL(file); el.src = A.url; el.loop = true; A.el = el; A.name = file.name;
-  hookAnalyser(audioCtx().createMediaElementSource(el), true); A.kind = 'file';
-  await el.play();
-}
 function soundUi(msg) {
   const b = $('#bSound');
   b.classList.toggle('live', A.on); b.textContent = A.on ? '\u266a LIVE' : 'SOUND';
-  $('#soundMsg').textContent = msg || (A.on ? ({ mic: 'Listening to the microphone', tab: 'Listening to the shared audio', file: 'Playing ' + A.name }[A.kind] || '') : '');
+  $('#soundMsg').textContent = msg || (A.on ? ({ mic: 'Listening to the microphone', tab: 'Listening to the shared audio' }[A.kind] || '') : '');
 }
 function soundError(err) {
   stopSound(err && err.name === 'NotAllowedError' ? 'Permission was blocked. Allow it and try again.'
@@ -373,16 +363,10 @@ sMenu.addEventListener('click', async e => {
   e.stopPropagation();
   const k = b.dataset.src;
   try {
-    if (k === 'file') { $('#audioFile').click(); return; }
     if (k === 'off') stopSound();
     else { soundUi(k === 'mic' ? 'Asking for the microphone\u2026' : 'Choose what to share\u2026'); await (k === 'mic' ? startMic() : startTab()); }
     soundUi(); if (k !== 'off') sMenu.classList.remove('open');
   } catch (err) { soundError(err); }
-  if (ptype === 'mouse') inp.focus({ preventScroll: true });
-});
-$('#audioFile').addEventListener('change', async e => {
-  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-  try { await startFile(f); soundUi(); sMenu.classList.remove('open'); } catch (err) { soundError(err); }
   if (ptype === 'mouse') inp.focus({ preventScroll: true });
 });
 const allStars = () => { const a = []; for (const l of letters) for (const s of l.stars) a.push(s); return a; };
