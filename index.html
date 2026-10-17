@@ -356,7 +356,13 @@ function soundError(err) {
 }
 const sMenu = $('#soundMenu');
 if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) || matchMedia('(pointer:coarse)').matches) $('#srcTab').style.display = 'none';
-$('#bSound').onclick = e => { e.stopPropagation(); sMenu.classList.toggle('open'); };
+function placeMenu() {   // keep the popup fully inside the window, wherever the button row ends up
+  sMenu.style.left = '0px'; const r = sMenu.getBoundingClientRect(), m = 12;
+  let dx = 0; if (r.right > innerWidth - m) dx = innerWidth - m - r.right; if (r.left + dx < m) dx = m - r.left;
+  sMenu.style.left = dx + 'px';
+}
+$('#bSound').onclick = e => { e.stopPropagation(); sMenu.classList.toggle('open'); if (sMenu.classList.contains('open')) placeMenu(); };
+addEventListener('resize', () => { if (sMenu.classList.contains('open')) placeMenu(); });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('#soundWrap')) sMenu.classList.remove('open'); });
 sMenu.addEventListener('click', async e => {
   const b = e.target.closest('button[data-src]'); if (!b) return;
@@ -726,7 +732,7 @@ function cleanSource() {
   const b = d.querySelector('#bCopy'); b.textContent = 'Copy code'; b.removeAttribute('class');
   d.querySelector('#credit').innerHTML = CREDIT_HTML;
   const sb = d.querySelector('#bSound'); sb.textContent = 'SOUND'; sb.removeAttribute('class');
-  d.querySelector('#soundMenu').removeAttribute('class'); d.querySelector('#soundMsg').textContent = ''; d.querySelector('#srcTab').removeAttribute('style');
+  d.querySelector('#soundMenu').removeAttribute('class'); d.querySelector('#soundMenu').removeAttribute('style'); d.querySelector('#soundMsg').textContent = ''; d.querySelector('#srcTab').removeAttribute('style');
   return '<!doctype html>\n' + d.outerHTML;
 }
 let copyTimer = 0;
