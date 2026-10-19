@@ -316,6 +316,7 @@ const A = { on: false, ctx: null, an: null, src: null, stream: null, bins: null,
 const D = { kick: { avg: 0, t: 0 }, snare: { avg: 0, t: 0 }, hat: { avg: 0, t: 0 } };   // onset detectors
 const Q = { auto: true, low: false, ema: 16.7, t0: performance.now() };                    // quality safety valve
 const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+let recDest = null, silence = null;   // audio sink for the recorder, set only while REC is running
 function audioCtx() {
   if (!A.ctx) A.ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (A.ctx.state === 'suspended') A.ctx.resume();
@@ -325,6 +326,7 @@ function hookAnalyser(source, toSpeakers) {
   const ctx = audioCtx(), an = ctx.createAnalyser();
   an.fftSize = 2048; an.smoothingTimeConstant = 0.5; an.minDecibels = -90; an.maxDecibels = -10;
   source.connect(an); if (toSpeakers) source.connect(ctx.destination);
+  if (recDest) source.connect(recDest);   // sound started while recording still lands in the video
   A.an = an; A.src = source; A.bins = new Uint8Array(an.frequencyBinCount); A.on = true; A.peak = 0.35; A.avg = 0; for (const k in D) D[k].avg = 0;
 }
 function stopSound(msg) {
@@ -792,11 +794,18 @@ function toggleRec() {
   const btn = $('#bRec');
   if (rec) { rec.stop(); return; }
   if (!window.MediaRecorder) { btn.textContent = 'no video'; return; }
-  const mime = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m));
+  const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m));
   if (!mime) { btn.textContent = 'no video'; return; }
-  const chunks = [], r = new MediaRecorder(cv.captureStream(60), { mimeType: mime, videoBitsPerSecond: 12e6 });
+  const stream = cv.captureStream(60);
+  try {   // whatever sound is playing (mic or shared tab) goes into the recording too
+    const ctx = audioCtx(); recDest = ctx.createMediaStreamDestination();
+    silence = ctx.createOscillator(); const z = ctx.createGain(); z.gain.value = 0; silence.connect(z); z.connect(recDest); silence.start();   // keeps the audio track producing data even when nothing plays
+    if (A.src) A.src.connect(recDest);
+    recDest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+  } catch (_) { recDest = null; }
+  const chunks = [], r = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6, audioBitsPerSecond: 192e3 });
   r.ondataavailable = e => e.data && e.data.size && chunks.push(e.data);
-  r.onstop = () => { dl(new Blob(chunks, { type: mime.split(';')[0] }), slug() + (mime.includes('mp4') ? '.mp4' : '.webm')); rec = null; btn.textContent = 'REC'; btn.classList.remove('rec'); };
+  r.onstop = () => { try { A.src && recDest && A.src.disconnect(recDest); } catch (_) {} recDest = null; try { silence && silence.stop(); } catch (_) {} silence = null; dl(new Blob(chunks, { type: mime.split(';')[0] }), slug() + (mime.includes('mp4') ? '.mp4' : '.webm')); rec = null; btn.textContent = 'REC'; btn.classList.remove('rec'); };
   r.start(); rec = r; btn.textContent = '■ STOP'; btn.classList.add('rec');
   setTimeout(() => { if (rec === r) r.stop(); }, 20000);
 }

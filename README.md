@@ -15,7 +15,7 @@ One plain HTML file: canvas and vanilla JavaScript, no build step, no dependenci
 | Click / tap | Shockwave |
 | Tab (or the swatches) | Changes the sky (14 palettes, including two light ones) |
 | SOUND | Listen through your microphone or a shared tab/screen with audio, and the whole sky reacts (see below) |
-| PNG / SVG / REC | Export an image, a transparent SVG of just the lettering, or a video |
+| PNG / SVG / REC | Export an image, a transparent SVG of just the lettering, or a video (with whatever sound is playing recorded into it) |
 | Copy code | Copies the page source with a short prompt, ready to paste into Claude |
 
 ## Sound
@@ -36,7 +36,7 @@ Loud passages add small meteor showers. If the page runs slowly with sound on, i
 
 ## Earlier versions
 
-The `versions/` folder keeps every earlier build, each a standalone HTML file: `v1-original-no-sound`, `v2-basic-sound`, `v3-immersive-sound`, `v4-14-skies`, plus `type-garden-remake`. The site itself is the `index.html` at the root.
+The `versions/` folder keeps every earlier build, each a standalone HTML file: `v1-original-no-sound`, `v2-basic-sound`, `v3-immersive-sound`, `v4-14-skies`, `v5-mic-screenshare-only`, plus `type-garden-remake`. The site itself is the `index.html` at the root.
 
 ## How it works
 
